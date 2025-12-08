@@ -1,21 +1,11 @@
-# This workflow automatically tests new commits and pull requests as they come in.
-# Note that this does not upload any artifacts, you will need to compile mcMMO manually
-# if you wish to create the actual jar.
-name: Compile and test
+name: Compile, test and upload artifacts
 
 on:
-  # We run our tests whenever the pom or a source file was touched.
-  # There is no need to run Maven when only the changelog was touched.
-  # We may also want to re-run this workflow when the workflow file itself
-  # was updated too.
   push:
     paths:
     - 'src/**'
     - 'pom.xml'
     - '.github/workflows/maven.yml'
-
-  # Whenever someone submits a new pull request which modified the pom or a source file,
-  # we want to ensure it compiles successfully and that all tests will pass.
   pull_request:
     paths:
     - 'src/**'
@@ -25,8 +15,12 @@ jobs:
   compile:
     name: Maven compiler
     runs-on: ubuntu-latest
+    
+    # 添加输出策略，以便下载工件
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    
     steps:
-
     # 1. Check out the current working tree
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -50,3 +44,35 @@ jobs:
     # 4. Build via Maven 
     - name: Build via Maven
       run: mvn verify -B --file pom.xml -DdisableXmlReport=true
+
+    # 5. 获取项目版本信息（可选）
+    - name: Get version from POM
+      id: get_version
+      run: |
+        VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Detected version: $VERSION"
+
+    # 6. 上传构建工件
+    - name: Upload JAR artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcMMO-${{ steps.get_version.outputs.version }}
+        path: target/*.jar
+        retention-days: 7  # 可选：设置保留天数
+
+    # 7. 上传源码（可选）
+    - name: Upload source JAR
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcMMO-sources-${{ steps.get_version.outputs.version }}
+        path: target/*-sources.jar
+
+    # 8. 上传Javadoc（可选）
+    - name: Upload javadoc JAR
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcMMO-javadoc-${{ steps.get_version.outputs.version }}
+        path: target/*-javadoc.jar
