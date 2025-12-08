@@ -1,4 +1,4 @@
-name: Compile, test and upload artifacts
+name: Compile, Test and Upload Artifacts
 
 on:
   push:
