@@ -81,7 +81,6 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 public class McMMOPlayer implements Identified {
-    private static final long NO_SWING = 0L;
     private final @NotNull Identity identity;
 
     //Hacky fix for now, redesign later
@@ -98,7 +97,6 @@ public class McMMOPlayer implements Identified {
     private Party invite;
     private Party allianceInvite;
     private int itemShareModifier;
-    private long lastSwingTimestamp = NO_SWING;
 
     private PartyTeleportRecord ptpRecord;
 
@@ -184,8 +182,6 @@ public class McMMOPlayer implements Identified {
     }
 
     private void initManager(PrimarySkillType primarySkillType) throws InvalidSkillException {
-        final var version = mcMMO.getCompatibilityManager().getMinecraftGameVersion();
-
         final SkillManager manager = switch (primarySkillType) {
             case ACROBATICS -> new AcrobaticsManager(this);
             case ALCHEMY -> new AlchemyManager(this);
@@ -204,8 +200,10 @@ public class McMMOPlayer implements Identified {
             case TRIDENTS -> new TridentsManager(this);
             case UNARMED -> new UnarmedManager(this);
             case WOODCUTTING -> new WoodcuttingManager(this);
-            case MACES -> version.isAtLeast(1, 21, 0) ? new MacesManager(this) : null;
-            case SPEARS -> version.isAtLeast(1, 21, 11) ? new SpearsManager(this) : null;
+            case MACES -> new MacesManager(this);
+            case SPEARS -> mcMMO.getMinecraftGameVersion().isAtLeast(1, 21, 11)
+                    ? new SpearsManager(this)
+                    : null;
         };
 
         if (manager != null) {
@@ -1281,11 +1279,4 @@ public class McMMOPlayer implements Identified {
         this.chatChannel = chatChannel;
     }
 
-    public long getLastSwingTimestamp() {
-        return lastSwingTimestamp;
-    }
-
-    public void setLastSwingTimestamp(long lastSwingTimestamp) {
-        this.lastSwingTimestamp = lastSwingTimestamp;
-    }
 }
